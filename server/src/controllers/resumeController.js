@@ -2,6 +2,7 @@ const fs = require("fs/promises");
 const path = require("path");
 const Resume = require("../models/Resume");
 const { resumesUploadDir } = require("../config/multer");
+const { parseResume } = require("../services/resumeParser");
 
 const removeStoredFile = async (storedFileName) => {
   if (!storedFileName) {
@@ -48,6 +49,16 @@ const uploadResume = async (req, res, next) => {
       await existingResume.deleteOne();
     }
 
+    let extractedText = "";
+    let parsingWarning = null;
+
+    try {
+      extractedText = await parseResume(req.file.path, req.file.mimetype);
+    } catch (parseError) {
+      parsingWarning = "Resume uploaded, but text extraction failed";
+      console.error("Resume parsing failed:", parseError.message);
+    }
+
     const resume = await Resume.create({
       user: req.user._id,
       originalFileName: req.file.originalname,
@@ -55,17 +66,23 @@ const uploadResume = async (req, res, next) => {
       fileUrl: `/uploads/resumes/${req.file.filename}`,
       fileSize: req.file.size,
       uploadDate: new Date(),
-      extractedText: "",
+      extractedText,
       skills: [],
       experience: "",
       education: "",
     });
 
-    res.status(201).json({
+    const response = {
       success: true,
-      message: "Resume uploaded successfully",
+      message: parsingWarning || "Resume uploaded and parsed successfully",
       resume: buildResumeResponse(resume),
-    });
+    };
+
+    if (parsingWarning) {
+      response.warning = parsingWarning;
+    }
+
+    res.status(201).json(response);
   } catch (error) {
     if (req.file) {
       try {
