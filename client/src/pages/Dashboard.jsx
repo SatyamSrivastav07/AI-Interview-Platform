@@ -110,6 +110,9 @@ const Dashboard = () => {
               <Link to="/resume" className="secondary-button justify-start">
                 Resume analysis
               </Link>
+              <Link to="/generate-interview" className="secondary-button justify-start">
+                Generate interview
+              </Link>
               <Link to="/history" className="secondary-button justify-start">
                 Interview history
               </Link>

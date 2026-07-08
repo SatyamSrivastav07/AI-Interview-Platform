@@ -4,6 +4,7 @@ import { useAuth } from "../context/AuthContext.jsx";
 const navItems = [
   { label: "Dashboard", to: "/dashboard" },
   { label: "Resume", to: "/resume" },
+  { label: "Generate Interview", to: "/generate-interview" },
   { label: "History", to: "/history" },
 ];
 
