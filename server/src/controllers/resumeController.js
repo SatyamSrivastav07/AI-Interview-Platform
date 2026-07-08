@@ -3,6 +3,7 @@ const path = require("path");
 const Resume = require("../models/Resume");
 const { resumesUploadDir } = require("../config/multer");
 const { parseResume } = require("../services/resumeParser");
+const { analyzeResume } = require("../services/resumeAnalyzer");
 
 const removeStoredFile = async (storedFileName) => {
   if (!storedFileName) {
@@ -32,6 +33,12 @@ const buildResumeResponse = (resume) => ({
   skills: resume.skills,
   experience: resume.experience,
   education: resume.education,
+  projects: resume.projects,
+  certifications: resume.certifications,
+  programmingLanguages: resume.programmingLanguages,
+  frameworks: resume.frameworks,
+  databases: resume.databases,
+  tools: resume.tools,
 });
 
 // Stores a new authenticated user's resume and replaces any previous resume.
@@ -59,6 +66,8 @@ const uploadResume = async (req, res, next) => {
       console.error("Resume parsing failed:", parseError.message);
     }
 
+    const analyzedResume = analyzeResume(extractedText);
+
     const resume = await Resume.create({
       user: req.user._id,
       originalFileName: req.file.originalname,
@@ -67,9 +76,15 @@ const uploadResume = async (req, res, next) => {
       fileSize: req.file.size,
       uploadDate: new Date(),
       extractedText,
-      skills: [],
-      experience: "",
-      education: "",
+      skills: analyzedResume.skills,
+      experience: analyzedResume.experience,
+      education: analyzedResume.education,
+      projects: analyzedResume.projects,
+      certifications: analyzedResume.certifications,
+      programmingLanguages: analyzedResume.programmingLanguages,
+      frameworks: analyzedResume.frameworks,
+      databases: analyzedResume.databases,
+      tools: analyzedResume.tools,
     });
 
     const response = {

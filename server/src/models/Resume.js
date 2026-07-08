@@ -48,6 +48,30 @@ const resumeSchema = new mongoose.Schema(
       type: String,
       default: "",
     },
+    projects: {
+      type: [String],
+      default: [],
+    },
+    certifications: {
+      type: [String],
+      default: [],
+    },
+    programmingLanguages: {
+      type: [String],
+      default: [],
+    },
+    frameworks: {
+      type: [String],
+      default: [],
+    },
+    databases: {
+      type: [String],
+      default: [],
+    },
+    tools: {
+      type: [String],
+      default: [],
+    },
   },
   {
     timestamps: true,
