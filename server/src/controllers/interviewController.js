@@ -1,6 +1,7 @@
 const Interview = require("../models/Interview");
 const Resume = require("../models/Resume");
 const { generateInterviewQuestions } = require("../services/interviewGenerator");
+const { evaluateAnswer } = require("../services/answerEvaluator");
 
 const allowedExperienceLevels = ["Fresher", "Junior", "Mid", "Senior"];
 const allowedInterviewTypes = ["HR", "Technical", "DSA", "Mixed"];
@@ -34,6 +35,20 @@ const validateGenerateInterviewInput = ({
 
   if (Number.isNaN(parsedQuestionCount) || parsedQuestionCount < 1 || parsedQuestionCount > 30) {
     return "numberOfQuestions must be a number between 1 and 30";
+  }
+
+  return null;
+};
+
+const validateSubmitAnswerInput = ({ questionId, userAnswer }) => {
+  const parsedQuestionId = Number.parseInt(questionId, 10);
+
+  if (Number.isNaN(parsedQuestionId)) {
+    return "questionId must be a valid number";
+  }
+
+  if (!userAnswer || typeof userAnswer !== "string" || !userAnswer.trim()) {
+    return "userAnswer is required";
   }
 
   return null;
@@ -103,6 +118,91 @@ const generateInterview = async (req, res, next) => {
   }
 };
 
+// Evaluates and saves an answer for one question in an authenticated user's interview.
+const submitAnswer = async (req, res, next) => {
+  try {
+    const { interviewId } = req.params;
+    const { questionId, userAnswer } = req.body;
+    const validationError = validateSubmitAnswerInput({ questionId, userAnswer });
+
+    if (validationError) {
+      res.status(400);
+      throw new Error(validationError);
+    }
+
+    const interview = await Interview.findOne({
+      _id: interviewId,
+      user: req.user._id,
+    });
+
+    if (!interview) {
+      res.status(404);
+      throw new Error("Interview not found");
+    }
+
+    const parsedQuestionId = Number.parseInt(questionId, 10);
+    const question = interview.questions.find((item) => item.id === parsedQuestionId);
+
+    if (!question) {
+      res.status(404);
+      throw new Error("Question not found");
+    }
+
+    const resume = await Resume.findOne({
+      _id: interview.resume,
+      user: req.user._id,
+    });
+
+    if (!resume) {
+      res.status(404);
+      throw new Error("Resume not found");
+    }
+
+    const evaluationResult = await evaluateAnswer({
+      question,
+      expectedTopics: question.expectedTopics,
+      userAnswer: userAnswer.trim(),
+      resume,
+    });
+
+    question.userAnswer = userAnswer.trim();
+    question.feedback = evaluationResult.evaluation.feedback;
+    question.score = evaluationResult.evaluation.score;
+    question.strengths = evaluationResult.evaluation.strengths;
+    question.improvements = evaluationResult.evaluation.improvements;
+
+    await interview.save();
+
+    const response = {
+      success: true,
+      message: "Answer evaluated successfully",
+      evaluationProvider: evaluationResult.provider,
+      question: {
+        id: question.id,
+        question: question.question,
+        category: question.category,
+        difficulty: question.difficulty,
+        expectedTopics: question.expectedTopics,
+        userAnswer: question.userAnswer,
+        feedback: question.feedback,
+        score: question.score,
+        strengths: question.strengths,
+        improvements: question.improvements,
+        idealAnswer: evaluationResult.evaluation.idealAnswer,
+      },
+    };
+
+    if (evaluationResult.warning) {
+      response.evaluationWarning = evaluationResult.warning;
+    }
+
+    res.status(200).json(response);
+  } catch (error) {
+    next(error);
+  }
+};
+
 module.exports = {
   generateInterview,
+  submitAnswer,
 };

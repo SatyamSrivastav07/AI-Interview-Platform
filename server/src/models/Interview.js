@@ -25,6 +25,30 @@ const questionSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    userAnswer: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    feedback: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+    score: {
+      type: Number,
+      min: 0,
+      max: 100,
+      default: 0,
+    },
+    strengths: {
+      type: [String],
+      default: [],
+    },
+    improvements: {
+      type: [String],
+      default: [],
+    },
   },
   {
     _id: false,
