@@ -1,6 +1,6 @@
 import { createContext, useContext, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import api from "../api/axios.js";
+import { loginUser, registerUser } from "../api/authApi.js";
 
 const AuthContext = createContext(null);
 
@@ -28,7 +28,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
 
     try {
-      const { data } = await api.post("/auth/login", { email, password });
+      const { data } = await loginUser({ email, password });
       persistAuth(data.token, data.user);
       toast.success("Logged in successfully");
       return data;
@@ -45,7 +45,7 @@ export const AuthProvider = ({ children }) => {
     setLoading(true);
 
     try {
-      const { data } = await api.post("/auth/register", { name, email, password });
+      const { data } = await registerUser({ name, email, password });
       persistAuth(data.token, data.user);
       toast.success("Account created");
       return data;

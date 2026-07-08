@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
-import api from "../api/axios.js";
+import { getInterviewHistory } from "../api/interviewApi.js";
 import Loader from "../components/Loader.jsx";
 import Navbar from "../components/Navbar.jsx";
 
@@ -11,7 +11,7 @@ const InterviewHistory = () => {
   useEffect(() => {
     const fetchHistory = async () => {
       try {
-        const { data } = await api.get("/interview/history");
+        const { data } = await getInterviewHistory();
         setInterviews(data.interviews || []);
       } catch (error) {
         toast.error(error.response?.data?.message || "Could not load interview history");
