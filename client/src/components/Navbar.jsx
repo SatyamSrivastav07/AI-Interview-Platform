@@ -27,13 +27,13 @@ const Navbar = () => {
           <span className="hidden text-base font-bold text-ink sm:inline">AI Interview Platform</span>
         </NavLink>
 
-        <nav className="order-3 flex w-full items-center justify-center gap-1 rounded-md border border-slate-200 bg-slate-50 p-1 sm:order-none sm:w-auto">
+        <nav className="order-3 flex w-full items-center gap-1 overflow-x-auto rounded-md border border-slate-200 bg-slate-50 p-1 sm:order-none sm:w-auto sm:justify-center">
           {navItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}
               className={({ isActive }) =>
-                `rounded-md px-2.5 py-2 text-xs font-semibold transition sm:px-3 sm:text-sm ${
+                `whitespace-nowrap rounded-md px-2.5 py-2 text-xs font-semibold transition sm:px-3 sm:text-sm ${
                   isActive ? "bg-white text-brand shadow-sm" : "text-slate-600 hover:bg-white"
                 }`
               }

@@ -190,7 +190,7 @@ const Dashboard = () => {
                       <div>
                         <h3 className="font-bold text-ink">{interview.role}</h3>
                         <p className="mt-1 text-sm text-slate-500">
-                          {interview.interviewType} • {interview.difficulty}
+                          {interview.interviewType} | {interview.difficulty}
                         </p>
                       </div>
                       <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">

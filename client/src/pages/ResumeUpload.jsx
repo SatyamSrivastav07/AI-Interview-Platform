@@ -3,6 +3,7 @@ import toast from "react-hot-toast";
 import { getMyResume, uploadResume } from "../api/resumeApi.js";
 import AnalysisCard from "../components/AnalysisCard.jsx";
 import BadgeList from "../components/BadgeList.jsx";
+import EmptyState from "../components/EmptyState.jsx";
 import Loader from "../components/Loader.jsx";
 import Navbar from "../components/Navbar.jsx";
 import Skeleton from "../components/Skeleton.jsx";
@@ -206,7 +207,12 @@ const ResumeUpload = () => {
                 </p>
               </div>
             ) : (
-              <p className="mt-5 text-sm text-slate-600">Upload a resume to see analysis here.</p>
+              <div className="mt-5">
+                <EmptyState
+                  title="No resume uploaded"
+                  description="Upload a PDF or DOCX resume to unlock skills, weak areas, projects, and interview topics."
+                />
+              </div>
             )}
           </div>
         </section>
