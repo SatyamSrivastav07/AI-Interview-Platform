@@ -3,6 +3,8 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 import GenerateInterview from "./pages/GenerateInterview.jsx";
 import InterviewHistory from "./pages/InterviewHistory.jsx";
+import InterviewResult from "./pages/InterviewResult.jsx";
+import InterviewSession from "./pages/InterviewSession.jsx";
 import Login from "./pages/Login.jsx";
 import NotFound from "./pages/NotFound.jsx";
 import Register from "./pages/Register.jsx";
@@ -17,6 +19,8 @@ const App = () => (
       <Route path="/dashboard" element={<Dashboard />} />
       <Route path="/resume" element={<ResumeUpload />} />
       <Route path="/generate-interview" element={<GenerateInterview />} />
+      <Route path="/interview/:interviewId" element={<InterviewSession />} />
+      <Route path="/interview/:interviewId/result" element={<InterviewResult />} />
       <Route path="/history" element={<InterviewHistory />} />
     </Route>
     <Route path="*" element={<NotFound />} />

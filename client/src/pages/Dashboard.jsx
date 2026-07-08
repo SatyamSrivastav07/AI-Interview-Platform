@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
-import { getInterviewStats } from "../api/interviewApi.js";
+import { getInterviewHistory, getInterviewStats } from "../api/interviewApi.js";
+import EmptyState from "../components/EmptyState.jsx";
 import Navbar from "../components/Navbar.jsx";
 import Skeleton from "../components/Skeleton.jsx";
 import StatCard from "../components/StatCard.jsx";
@@ -17,21 +18,24 @@ const defaultStats = {
 const Dashboard = () => {
   const { user } = useAuth();
   const [stats, setStats] = useState(defaultStats);
+  const [recentInterviews, setRecentInterviews] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadStats = async () => {
+    const loadDashboard = async () => {
       try {
-        const { data } = await getInterviewStats();
-        setStats(data.stats || defaultStats);
+        const [statsResponse, historyResponse] = await Promise.all([getInterviewStats(), getInterviewHistory()]);
+
+        setStats(statsResponse.data.stats || defaultStats);
+        setRecentInterviews((historyResponse.data.interviews || []).slice(0, 3));
       } catch (error) {
-        toast.error(error.response?.data?.message || "Could not load dashboard stats");
+        toast.error(error.response?.data?.message || "Could not load dashboard data");
       } finally {
         setLoading(false);
       }
     };
 
-    loadStats();
+    loadDashboard();
   }, []);
 
   const statCards = [
@@ -60,22 +64,58 @@ const Dashboard = () => {
       accent: "slate",
     },
   ];
+  const quickActions = [
+    {
+      title: "Resume Upload",
+      description: "Add or refresh resume analysis before generating interview questions.",
+      to: "/resume",
+      action: "Open Resume",
+    },
+    {
+      title: "Generate Interview",
+      description: "Create role-specific questions from your resume signals.",
+      to: "/generate-interview",
+      action: "Generate",
+    },
+    {
+      title: "Interview History",
+      description: "Continue incomplete sessions or inspect previous attempts.",
+      to: "/history",
+      action: "View History",
+    },
+    {
+      title: "View Results",
+      description: "Review scores, feedback, strong areas, and recommended topics.",
+      to: recentInterviews[0]?.id ? `/interview/${recentInterviews[0].id}/result` : "/history",
+      action: "Review",
+    },
+  ];
 
   return (
     <div className="page-shell">
       <Navbar />
       <main className="content-shell">
-        <section className="mb-8 grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
-          <div>
+        <section className="mb-8 grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
+          <div className="panel bg-white p-6">
             <p className="text-sm font-semibold uppercase tracking-wider text-brand">Dashboard</p>
             <h1 className="mt-3 text-3xl font-bold text-ink sm:text-4xl">Welcome, {user?.name || "Candidate"}</h1>
             <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-              Monitor interview progress, score trends, and resume-powered preparation from one workspace.
+              Keep resume analysis, interview practice, and result review moving from one focused workspace.
             </p>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+              <Link to="/generate-interview" className="primary-button">
+                Generate Interview
+              </Link>
+              <Link to="/history" className="secondary-button">
+                Review History
+              </Link>
+            </div>
           </div>
-          <Link to="/resume" className="primary-button">
-            Upload Resume
-          </Link>
+          <div className="panel p-6">
+            <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Completion</p>
+            <p className="mt-3 text-3xl font-bold text-ink">{stats.totalAnsweredQuestions || 0}</p>
+            <p className="mt-2 text-sm leading-6 text-slate-600">questions answered with AI feedback.</p>
+          </div>
         </section>
 
         <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -90,34 +130,95 @@ const Dashboard = () => {
             : statCards.map((card) => <StatCard key={card.title} {...card} />)}
         </section>
 
-        <section className="mt-8 grid gap-5 lg:grid-cols-3">
-          <div className="panel p-6 lg:col-span-2">
-            <h2 className="text-lg font-bold text-ink">Preparation workflow</h2>
-            <div className="mt-5 grid gap-3 sm:grid-cols-3">
-              {["Upload resume", "Generate interview", "Review feedback"].map((step, index) => (
-                <div key={step} className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                  <div className="grid h-8 w-8 place-items-center rounded-md bg-white text-sm font-bold text-brand shadow-sm">
-                    {index + 1}
-                  </div>
-                  <p className="mt-4 text-sm font-semibold text-ink">{step}</p>
+        <section className="mt-8">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-ink">Quick actions</h2>
+              <p className="mt-1 text-sm text-slate-600">Jump into the core preparation workflow.</p>
+            </div>
+          </div>
+          <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+            {quickActions.map((action) => (
+              <Link key={action.title} to={action.to} className="panel p-5 transition hover:-translate-y-0.5 hover:shadow-md">
+                <div className="grid h-10 w-10 place-items-center rounded-md bg-blue-50 text-sm font-bold text-brand">
+                  {action.title.slice(0, 1)}
+                </div>
+                <h3 className="mt-4 text-base font-bold text-ink">{action.title}</h3>
+                <p className="mt-2 min-h-12 text-sm leading-6 text-slate-600">{action.description}</p>
+                <span className="mt-4 inline-flex text-sm font-bold text-brand">{action.action}</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+
+        <section className="mt-8">
+          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <h2 className="text-xl font-bold text-ink">Recent interviews</h2>
+              <p className="mt-1 text-sm text-slate-600">Latest generated sessions and their progress.</p>
+            </div>
+            <Link to="/history" className="secondary-button">
+              View All
+            </Link>
+          </div>
+
+          {loading ? (
+            <div className="grid gap-4 lg:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="panel p-5">
+                  <Skeleton className="h-5 w-40" />
+                  <Skeleton className="mt-4 h-4 w-28" />
+                  <Skeleton className="mt-5 h-10 w-full" />
                 </div>
               ))}
             </div>
-          </div>
-          <div className="panel p-6">
-            <h2 className="text-lg font-bold text-ink">Quick actions</h2>
-            <div className="mt-5 grid gap-3">
-              <Link to="/resume" className="secondary-button justify-start">
-                Resume analysis
-              </Link>
-              <Link to="/generate-interview" className="secondary-button justify-start">
-                Generate interview
-              </Link>
-              <Link to="/history" className="secondary-button justify-start">
-                Interview history
-              </Link>
+          ) : recentInterviews.length === 0 ? (
+            <EmptyState
+              title="No interviews yet"
+              description="Generate your first interview from resume analysis to start tracking progress and feedback."
+              actionLabel="Generate Interview"
+              actionTo="/generate-interview"
+            />
+          ) : (
+            <div className="grid gap-4 lg:grid-cols-3">
+              {recentInterviews.map((interview) => {
+                const completed = interview.answeredCount === interview.questionCount;
+
+                return (
+                  <article key={interview.id} className="panel p-5">
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <h3 className="font-bold text-ink">{interview.role}</h3>
+                        <p className="mt-1 text-sm text-slate-500">
+                          {interview.interviewType} • {interview.difficulty}
+                        </p>
+                      </div>
+                      <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+                        {interview.averageScore}%
+                      </span>
+                    </div>
+                    <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-200">
+                      <div
+                        className="h-full rounded-full bg-brand"
+                        style={{ width: `${Math.round((interview.answeredCount / interview.questionCount) * 100)}%` }}
+                      />
+                    </div>
+                    <p className="mt-3 text-sm text-slate-600">
+                      {interview.answeredCount}/{interview.questionCount} answered
+                    </p>
+                    <div className="mt-4 flex gap-3">
+                      <Link
+                        to={completed ? `/interview/${interview.id}/result` : `/interview/${interview.id}`}
+                        className="primary-button min-h-10 flex-1"
+                      >
+                        {completed ? "View Result" : "Continue"}
+                      </Link>
+                    </div>
+                  </article>
+                );
+              })}
             </div>
-          </div>
+          )}
         </section>
       </main>
     </div>

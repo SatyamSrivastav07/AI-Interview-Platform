@@ -11,7 +11,6 @@ import Skeleton from "../components/Skeleton.jsx";
 const experienceLevels = ["Fresher", "Junior", "Mid", "Senior"];
 const interviewTypes = ["HR", "Technical", "DSA", "Mixed"];
 const difficulties = ["Easy", "Medium", "Hard"];
-const answerPageReady = false;
 
 const initialForm = {
   resumeId: "",
@@ -97,7 +96,7 @@ const GenerateInterview = () => {
   };
 
   const handleStartAnswering = () => {
-    if (generatedInterviewId && answerPageReady) {
+    if (generatedInterviewId) {
       navigate(`/interview/${generatedInterviewId}`);
     }
   };
@@ -265,8 +264,8 @@ const GenerateInterview = () => {
                 type="button"
                 className="primary-button"
                 onClick={handleStartAnswering}
-                disabled={!generatedInterviewId || !answerPageReady}
-                title={answerPageReady ? "Start answering" : "Answering page will be added in a later milestone"}
+                disabled={!generatedInterviewId}
+                title="Start answering"
               >
                 Start Answering
               </button>
