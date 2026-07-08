@@ -2,126 +2,81 @@
 
 ![Node.js](https://img.shields.io/badge/Node.js-Backend-339933?logo=node.js&logoColor=white)
 ![Express](https://img.shields.io/badge/Express.js-API-000000?logo=express&logoColor=white)
-![MongoDB](https://img.shields.io/badge/MongoDB-Database-47A248?logo=mongodb&logoColor=white)
+![React](https://img.shields.io/badge/React-Frontend-61DAFB?logo=react&logoColor=111827)
+![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-47A248?logo=mongodb&logoColor=white)
 ![JWT](https://img.shields.io/badge/JWT-Authentication-000000?logo=jsonwebtokens&logoColor=white)
 ![License](https://img.shields.io/badge/License-MIT-blue.svg)
-![Status](https://img.shields.io/badge/Status-In%20Development-orange)
 
-A modern AI-powered interview preparation platform designed to help candidates upload resumes, practice interviews, receive intelligent questions, and track progress with personalized feedback.
+A full-stack AI interview preparation platform where candidates upload a resume, generate tailored interview questions, answer them in a live session, receive AI feedback, and review progress over time.
 
-The project currently includes a production-style Express backend with authentication, protected routes, MongoDB persistence, and resume upload support. AI parsing, interview generation, dashboard analytics, and frontend experiences are planned for upcoming milestones.
+## Live Demo
+
+- Frontend: `Coming soon`
+- Backend API: `Coming soon`
+- Backend API status: `/api/health`
 
 ## Features
 
-### Current
-
-- ✅ Express backend API
-- ✅ MongoDB database integration with Mongoose
-- ✅ JWT authentication
-- ✅ User registration API
-- ✅ User login API
-- ✅ Password hashing with bcrypt
-- ✅ Protected API routes
-- ✅ Resume upload API
-- ✅ Multer file upload configuration
-- ✅ PDF and DOCX resume validation
-- ✅ 10MB resume upload limit
-- ✅ Replace existing resume on re-upload
-- ✅ Centralized error handling
-
-### Upcoming
-
-- 🚀 AI resume parsing
-- 🚀 Gemini API integration
-- 🚀 AI interview question generator
-- 🚀 Voice interview experience
-- 🚀 AI answer feedback
-- 🚀 Candidate dashboard
-- 🚀 Interview analytics
-- 🚀 Progress tracking
-- 🚀 Frontend application
+- JWT authentication with protected candidate routes
+- Resume upload and parsing for PDF and DOCX files
+- AI resume analysis with skills, strengths, weak areas, projects, and suggested topics
+- Resume-powered interview question generation
+- Live interview screen with progress, timer, answer submission, and AI evaluation
+- Interview result screen with scores, feedback, strengths, improvements, and recommended topics
+- Interview history with continue, result review, and delete actions
+- Dashboard analytics and recent interview preview
+- Responsive React + Tailwind frontend with reusable loading, empty, error, and confirmation states
+- Deployment-ready environment configuration for Render, Vercel, and MongoDB Atlas
 
 ## Tech Stack
 
 | Layer | Technology |
 | --- | --- |
+| Frontend | React, Vite, Tailwind CSS, React Router, Axios |
 | Backend | Node.js, Express.js |
-| Database | MongoDB, Mongoose |
+| Database | MongoDB Atlas, Mongoose |
 | Authentication | JWT, bcryptjs |
-| File Uploads | Multer |
-| Environment Config | dotenv |
-| API Security Foundation | Protected routes, validation, CORS |
-| Planned Frontend | React.js, Tailwind CSS |
-| Planned AI | Gemini API |
+| AI | Google Gemini API |
+| File Uploads | Multer, PDF/DOCX parsing |
+| Deployment Targets | Vercel frontend, Render backend |
 
-## Folder Structure
+## Project Architecture
 
 ```text
 AI-Interview-Platform/
 ├── client/
-│   └── .gitkeep
+│   ├── src/
+│   │   ├── api/
+│   │   ├── components/
+│   │   ├── context/
+│   │   ├── pages/
+│   │   ├── App.jsx
+│   │   ├── index.css
+│   │   └── main.jsx
+│   ├── .env.example
+│   ├── package.json
+│   └── vite.config.js
 ├── docs/
-│   └── .gitkeep
+│   └── DEPLOYMENT.md
 ├── images/
-│   └── .gitkeep
 ├── server/
 │   ├── src/
 │   │   ├── config/
-│   │   │   ├── db.js
-│   │   │   └── multer.js
 │   │   ├── controllers/
-│   │   │   ├── authController.js
-│   │   │   └── resumeController.js
 │   │   ├── middleware/
-│   │   │   ├── authMiddleware.js
-│   │   │   └── errorMiddleware.js
 │   │   ├── models/
-│   │   │   ├── Resume.js
-│   │   │   └── User.js
 │   │   ├── routes/
-│   │   │   ├── authRoutes.js
-│   │   │   ├── healthRoutes.js
-│   │   │   └── resumeRoutes.js
+│   │   ├── services/
 │   │   ├── app.js
 │   │   └── server.js
 │   ├── uploads/
-│   │   └── resumes/
-│   │       └── .gitkeep
 │   ├── .env.example
-│   ├── package.json
-│   └── package-lock.json
-├── .gitignore
+│   └── package.json
 ├── LICENSE
 └── README.md
 ```
 
-## Backend Architecture
-
-The backend follows a clean MVC-style structure:
-
-- `server.js` starts the application and connects to MongoDB.
-- `app.js` configures Express middleware, CORS, route mounting, and error handling.
-- `config/` contains infrastructure configuration such as MongoDB and Multer.
-- `models/` contains Mongoose schemas for persistent data.
-- `controllers/` contains request handlers and business logic.
-- `routes/` defines API endpoints and route-level middleware.
-- `middleware/` contains reusable authentication and error handling logic.
-
-Authentication is handled with JWT bearer tokens. Protected routes require:
-
-```http
-Authorization: Bearer <token>
-```
-
-Resume uploads are stored locally in:
-
-```text
-server/uploads/resumes/
-```
-
-Uploaded resume files are ignored by Git to avoid committing user data.
-
-## API Endpoints
+## Backend API
 
 ### Health
 
@@ -133,45 +88,44 @@ Uploaded resume files are ignored by Git to avoid committing user data.
 
 | Method | Endpoint | Auth | Description |
 | --- | --- | --- | --- |
-| POST | `/api/auth/register` | No | Register a new user |
+| POST | `/api/auth/register` | No | Register a user |
 | POST | `/api/auth/login` | No | Login and receive a JWT |
 
 ### Resume
 
 | Method | Endpoint | Auth | Description |
 | --- | --- | --- | --- |
-| POST | `/api/resume/upload` | Yes | Upload a PDF or DOCX resume |
+| POST | `/api/resume/upload` | Yes | Upload and analyze a resume |
 | GET | `/api/resume/me` | Yes | Get the authenticated user's resume |
 | DELETE | `/api/resume/delete` | Yes | Delete the authenticated user's resume |
 
-### Resume Upload Request
+### Interview
 
-Use `multipart/form-data` with the field name:
+| Method | Endpoint | Auth | Description |
+| --- | --- | --- | --- |
+| POST | `/api/interview/generate` | Yes | Generate an interview from resume signals |
+| GET | `/api/interview/history` | Yes | Get interview history |
+| GET | `/api/interview/stats` | Yes | Get dashboard interview stats |
+| GET | `/api/interview/:interviewId` | Yes | Get a full interview |
+| POST | `/api/interview/:interviewId/answer` | Yes | Submit and evaluate an answer |
+| DELETE | `/api/interview/:interviewId` | Yes | Delete an interview |
 
-```text
-resume
+Protected routes require:
+
+```http
+Authorization: Bearer <token>
 ```
 
-Supported file types:
-
-- `.pdf`
-- `.docx`
-
-Maximum file size:
-
-```text
-10MB
-```
-
-## Installation Guide
+## Local Development
 
 ### Prerequisites
 
 - Node.js
 - npm
-- MongoDB local instance or MongoDB Atlas connection string
+- MongoDB local instance or MongoDB Atlas URI
+- Gemini API key
 
-### Backend Setup
+### Backend
 
 ```bash
 cd server
@@ -180,94 +134,106 @@ cp .env.example .env
 npm run dev
 ```
 
-For production-style startup:
-
-```bash
-npm start
-```
-
-The backend runs on:
+Backend local URL:
 
 ```text
 http://localhost:5000
 ```
 
+### Frontend
+
+```bash
+cd client
+npm install
+cp .env.example .env
+npm run dev
+```
+
+Frontend local URL:
+
+```text
+http://localhost:5173
+```
+
 ## Environment Variables
+
+### Backend
 
 Create `server/.env` from `server/.env.example`.
 
-```env
-PORT=5000
-MONGO_URI=mongodb://127.0.0.1:27017/ai-interview-platform
-JWT_SECRET=replace-with-a-long-random-secret
-JWT_EXPIRES_IN=7d
-CLIENT_URL=http://localhost:5173
+| Variable | Required | Description |
+| --- | --- | --- |
+| `PORT` | No | Backend port. Render injects this automatically in production. |
+| `MONGO_URI` | Yes | MongoDB connection string. |
+| `JWT_SECRET` | Yes | Secret used to sign JWT tokens. |
+| `JWT_EXPIRES_IN` | Yes | JWT expiration duration, for example `7d`. |
+| `CLIENT_URL` | Yes | Allowed frontend origin for CORS. |
+| `GEMINI_API_KEY` | Yes | Gemini API key for AI features. |
+
+### Frontend
+
+Create `client/.env` from `client/.env.example`.
+
+| Variable | Required | Description |
+| --- | --- | --- |
+| `VITE_API_URL` | Yes | Backend API base URL ending in `/api`. |
+
+The frontend requires `VITE_API_URL`. It fails fast if this variable is missing.
+
+## Deployment
+
+Recommended deployment targets:
+
+- Backend: Render
+- Frontend: Vercel
+- Database: MongoDB Atlas
+
+Deployment guide:
+
+```text
+docs/DEPLOYMENT.md
 ```
 
-| Variable | Description |
-| --- | --- |
-| `PORT` | Backend server port |
-| `MONGO_URI` | MongoDB connection string |
-| `JWT_SECRET` | Secret used to sign JWT tokens |
-| `JWT_EXPIRES_IN` | JWT expiration duration |
-| `CLIENT_URL` | Allowed frontend origin for CORS |
+Production URL examples:
+
+```text
+CLIENT_URL=https://your-app.vercel.app
+VITE_API_URL=https://your-api.onrender.com/api
+```
+
+Do not commit real secrets or production `.env` files.
 
 ## Screenshots
 
-Screenshots will be added as the frontend is built.
+Screenshots will be added after deployment.
 
 ```text
 images/
 ├── dashboard-preview.png
+├── resume-upload-preview.png
 ├── interview-session-preview.png
-└── resume-upload-preview.png
+├── interview-result-preview.png
+└── interview-history-preview.png
 ```
 
 ## Roadmap
 
-- [x] Project repository setup
-- [x] Express backend setup
-- [x] MongoDB connection
-- [x] User model
-- [x] Register API
-- [x] Login API
-- [x] JWT auth middleware
-- [x] Resume model
-- [x] Resume upload API
-- [x] Protected resume routes
-- [ ] AI resume parsing
-- [ ] Gemini API integration
-- [ ] AI interview question generation
-- [ ] Answer evaluation
-- [ ] Voice interview mode
-- [ ] Candidate dashboard
-- [ ] Analytics and progress tracking
-- [ ] Frontend application
-- [ ] Deployment
-
-## Future Improvements
-
-- Add request validation with a schema validation library.
-- Add rate limiting for authentication and upload routes.
-- Add refresh tokens or secure HTTP-only cookie auth.
-- Add cloud file storage for resumes.
-- Extract resume text from PDF and DOCX files.
-- Generate role-specific interview questions using Gemini.
-- Score answers using AI feedback rubrics.
-- Add admin/recruiter roles.
-- Add automated tests for controllers and middleware.
-- Add API documentation with OpenAPI/Swagger.
-
-## Contributing
-
-Contributions are welcome.
-
-1. Fork the repository.
-2. Create a feature branch.
-3. Commit your changes.
-4. Open a pull request with a clear description.
-
-Please keep changes focused, documented, and aligned with the project roadmap.
+- [x] Express backend API
+- [x] MongoDB persistence
+- [x] JWT authentication
+- [x] Resume upload and parsing
+- [x] AI resume analysis
+- [x] AI interview generation
+- [x] AI answer evaluation
+- [x] React frontend
+- [x] Dashboard and history
+- [x] Live interview flow
+- [x] Result review flow
+- [x] Deployment documentation
+- [ ] Live production deployment
+- [ ] Cloud object storage for uploaded resumes
+- [ ] Automated tests
+- [ ] OpenAPI documentation
 
 ## License
 
