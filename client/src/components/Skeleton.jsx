@@ -1,3 +1,3 @@
-const Skeleton = ({ className = "" }) => <div className={`animate-pulse rounded-md bg-slate-200 ${className}`} />;
+const Skeleton = ({ className = "" }) => <div className={`animate-pulse rounded-xl bg-slate-200 ${className}`} />;
 
 export default Skeleton;

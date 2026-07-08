@@ -8,10 +8,10 @@ const QuestionCard = ({ question }) => {
   return (
     <article className="panel p-6">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-md bg-blue-50 px-2.5 py-1 text-xs font-semibold text-brand ring-1 ring-blue-100">
+        <span className="rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-semibold text-brand ring-1 ring-blue-100">
           {question.category}
         </span>
-        <span className="rounded-md bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-100">
+        <span className="rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-100">
           {question.difficulty}
         </span>
       </div>

@@ -1,11 +1,14 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { getInterview, submitAnswer } from "../api/interviewApi.js";
+import ErrorState from "../components/ErrorState.jsx";
 import Loader from "../components/Loader.jsx";
+import LoadingButton from "../components/LoadingButton.jsx";
 import Navbar from "../components/Navbar.jsx";
 import ProgressBar from "../components/ProgressBar.jsx";
 import QuestionCard from "../components/QuestionCard.jsx";
+import SectionHeader from "../components/SectionHeader.jsx";
 import Skeleton from "../components/Skeleton.jsx";
 import Timer from "../components/Timer.jsx";
 
@@ -29,24 +32,31 @@ const InterviewSession = () => {
   const [answer, setAnswer] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [expandedIdealAnswers, setExpandedIdealAnswers] = useState({});
+  const [error, setError] = useState("");
+
+  const loadInterview = useCallback(async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const { data } = await getInterview(interviewId);
+      const loadedInterview = data.interview;
+
+      setInterview(loadedInterview);
+      setAnswer(loadedInterview?.questions?.[0]?.userAnswer || "");
+    } catch (loadError) {
+      const message = loadError.response?.data?.message || "Could not load interview";
+
+      setError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  }, [interviewId]);
 
   useEffect(() => {
-    const loadInterview = async () => {
-      try {
-        const { data } = await getInterview(interviewId);
-        const loadedInterview = data.interview;
-
-        setInterview(loadedInterview);
-        setAnswer(loadedInterview?.questions?.[0]?.userAnswer || "");
-      } catch (error) {
-        toast.error(error.response?.data?.message || "Could not load interview");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadInterview();
-  }, [interviewId]);
+  }, [loadInterview]);
 
   const questions = interview?.questions || [];
   const currentQuestion = questions[currentIndex];
@@ -99,7 +109,7 @@ const InterviewSession = () => {
         questions: current.questions.map((question, index) => (index === currentIndex ? evaluatedQuestion : question)),
       }));
       setAnswer(evaluatedQuestion.userAnswer || "");
-      toast.success("Answer evaluated");
+      toast.success("Answer submitted and evaluated");
     } catch (error) {
       toast.error(error.response?.data?.message || "Could not submit answer");
     } finally {
@@ -116,6 +126,7 @@ const InterviewSession = () => {
 
   const handleFinish = () => {
     if (canFinish) {
+      toast.success("Interview completed");
       navigate(`/interview/${interviewId}/result`);
     }
   };
@@ -136,28 +147,21 @@ const InterviewSession = () => {
               <Skeleton className="mt-5 h-28 w-full" />
             </div>
           </section>
+        ) : error ? (
+          <ErrorState title="Interview unavailable" message={error} onRetry={loadInterview} />
         ) : !interview || questions.length === 0 ? (
-          <section className="panel p-8 text-center">
-            <h1 className="text-2xl font-bold text-ink">Interview unavailable</h1>
-            <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-slate-600">
-              This interview could not be loaded. Return to history and choose another generated interview.
-            </p>
-            <Link to="/history" className="primary-button mt-6">
-              Go to History
-            </Link>
-          </section>
+          <ErrorState
+            title="Interview unavailable"
+            message="This interview could not be loaded. Return to history and choose another generated interview."
+          />
         ) : (
           <>
-            <section className="mb-6 grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-wider text-brand">Live Interview</p>
-                <h1 className="mt-3 text-3xl font-bold text-ink sm:text-4xl">{interview.role}</h1>
-                <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-                  {interview.interviewType} interview for {interview.experienceLevel} level candidates.
-                </p>
-              </div>
-              <Timer running={!canFinish} />
-            </section>
+            <SectionHeader
+              eyebrow="Live Interview"
+              title={interview.role}
+              description={`${interview.interviewType} interview for ${interview.experienceLevel} level candidates.`}
+              actions={<Timer running={!canFinish} />}
+            />
 
             <section className="grid gap-6 lg:grid-cols-[1fr_18rem]">
               <div className="grid gap-5">
@@ -172,11 +176,13 @@ const InterviewSession = () => {
                     <label htmlFor="answer" className="text-lg font-bold text-ink">
                       Your answer
                     </label>
-                    <span className="text-xs font-semibold text-slate-500">{answer.length} characters</span>
+                    <span className="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-500">
+                      {answer.length} characters
+                    </span>
                   </div>
                   <textarea
                     id="answer"
-                    className="mt-4 min-h-56 w-full resize-y rounded-md border border-slate-300 bg-white px-4 py-3 text-sm leading-6 text-slate-900 outline-none transition focus:border-brand focus:ring-4 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-600"
+                    className="mt-4 min-h-56 w-full resize-y rounded-xl border border-slate-300 bg-white px-4 py-3 text-sm leading-6 text-slate-900 outline-none transition focus:border-brand focus:ring-4 focus:ring-blue-100 disabled:bg-slate-50 disabled:text-slate-600"
                     value={answer}
                     onChange={(event) => setAnswer(event.target.value)}
                     placeholder="Answer as if you are speaking to the interviewer..."
@@ -188,9 +194,9 @@ const InterviewSession = () => {
                       Previous
                     </button>
                     <div className="flex flex-col gap-3 sm:flex-row">
-                      <button type="submit" className="primary-button" disabled={isSubmitted || submitting}>
-                        {submitting ? "Evaluating..." : isSubmitted ? "Submitted" : "Submit Answer"}
-                      </button>
+                      <LoadingButton type="submit" loading={submitting} loadingText="Evaluating..." disabled={isSubmitted}>
+                        {isSubmitted ? "Submitted" : "Submit Answer"}
+                      </LoadingButton>
                       {isLastQuestion ? (
                         <button type="button" className="primary-button" onClick={handleFinish} disabled={!canFinish}>
                           Finish Interview

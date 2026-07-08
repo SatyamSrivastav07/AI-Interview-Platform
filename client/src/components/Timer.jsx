@@ -27,7 +27,7 @@ const Timer = ({ running = true }) => {
   const elapsedTime = useMemo(() => formatElapsed(elapsedSeconds), [elapsedSeconds]);
 
   return (
-    <div className="rounded-md border border-slate-200 bg-white px-4 py-3 text-right shadow-sm">
+    <div className="rounded-xl border border-slate-200 bg-white px-4 py-3 text-right shadow-sm">
       <p className="text-xs font-bold uppercase tracking-wider text-slate-500">Timer</p>
       <p className="mt-1 text-lg font-bold tabular-nums text-ink">{elapsedTime}</p>
     </div>

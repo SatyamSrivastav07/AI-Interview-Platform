@@ -1,11 +1,15 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, useNavigate } from "react-router-dom";
 import { generateInterview } from "../api/interviewApi.js";
 import { getMyResume } from "../api/resumeApi.js";
 import BadgeList from "../components/BadgeList.jsx";
+import EmptyState from "../components/EmptyState.jsx";
+import ErrorState from "../components/ErrorState.jsx";
 import Loader from "../components/Loader.jsx";
+import LoadingButton from "../components/LoadingButton.jsx";
 import Navbar from "../components/Navbar.jsx";
+import SectionHeader from "../components/SectionHeader.jsx";
 import Skeleton from "../components/Skeleton.jsx";
 
 const experienceLevels = ["Fresher", "Junior", "Mid", "Senior"];
@@ -30,29 +34,36 @@ const GenerateInterview = () => {
   const [generating, setGenerating] = useState(false);
   const [form, setForm] = useState(initialForm);
   const [generatedInterview, setGeneratedInterview] = useState(null);
+  const [resumeError, setResumeError] = useState("");
+
+  const loadResume = useCallback(async () => {
+    setLoadingResume(true);
+    setResumeError("");
+
+    try {
+      const { data } = await getMyResume();
+      const currentResume = data.resume;
+
+      setResume(currentResume);
+      setForm((current) => ({
+        ...current,
+        resumeId: currentResume?.id || currentResume?._id || "",
+      }));
+    } catch (error) {
+      if (error.response?.status !== 404) {
+        const message = error.response?.data?.message || "Could not load resume";
+
+        setResumeError(message);
+        toast.error(message);
+      }
+    } finally {
+      setLoadingResume(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const loadResume = async () => {
-      try {
-        const { data } = await getMyResume();
-        const currentResume = data.resume;
-
-        setResume(currentResume);
-        setForm((current) => ({
-          ...current,
-          resumeId: currentResume?.id || currentResume?._id || "",
-        }));
-      } catch (error) {
-        if (error.response?.status !== 404) {
-          toast.error(error.response?.data?.message || "Could not load resume");
-        }
-      } finally {
-        setLoadingResume(false);
-      }
-    };
-
     loadResume();
-  }, []);
+  }, [loadResume]);
 
   const questions = generatedInterview?.questions || [];
   const generatedInterviewId = useMemo(() => getInterviewId(generatedInterview), [generatedInterview]);
@@ -105,18 +116,16 @@ const GenerateInterview = () => {
     <div className="page-shell">
       <Navbar />
       <main className="content-shell">
-        <section className="mb-8 grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wider text-brand">AI Interview</p>
-            <h1 className="mt-3 text-3xl font-bold text-ink sm:text-4xl">Generate Interview Questions</h1>
-            <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-              Create a focused interview set from your resume analysis, target role, experience level, and difficulty.
-            </p>
-          </div>
-          <Link to="/resume" className="secondary-button">
-            Manage Resume
-          </Link>
-        </section>
+        <SectionHeader
+          eyebrow="AI Interview"
+          title="Generate Interview Questions"
+          description="Create a focused interview set from your resume analysis, target role, experience level, and difficulty."
+          actions={
+            <Link to="/resume" className="secondary-button">
+              Manage Resume
+            </Link>
+          }
+        />
 
         {loadingResume ? (
           <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
@@ -131,20 +140,16 @@ const GenerateInterview = () => {
               <Skeleton className="mt-6 h-28 w-full" />
             </div>
           </section>
+        ) : resumeError ? (
+          <ErrorState title="Resume unavailable" message={resumeError} onRetry={loadResume} />
         ) : !resume ? (
-          <section className="panel p-8 text-center">
-            <div className="mx-auto grid h-14 w-14 place-items-center rounded-md bg-blue-50 text-xl font-bold text-brand">
-              !
-            </div>
-            <h2 className="mt-5 text-xl font-bold text-ink">Upload resume first</h2>
-            <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-slate-600">
-              Interview generation needs a parsed resume so questions can reflect your skills, projects, strengths, and
-              weak areas.
-            </p>
-            <Link to="/resume" className="primary-button mt-6">
-              Upload Resume
-            </Link>
-          </section>
+          <EmptyState
+            icon="!"
+            title="Upload resume first"
+            description="Interview generation needs a parsed resume so questions can reflect your skills, projects, strengths, and weak areas."
+            actionLabel="Upload Resume"
+            actionTo="/resume"
+          />
         ) : (
           <section className="grid gap-6 lg:grid-cols-[0.9fr_1.1fr]">
             <form onSubmit={handleSubmit} className="panel p-6">
@@ -223,9 +228,9 @@ const GenerateInterview = () => {
                 </div>
               </div>
 
-              <button type="submit" className="primary-button mt-6 w-full" disabled={generating}>
-                {generating ? "Generating..." : "Generate Questions"}
-              </button>
+              <LoadingButton type="submit" className="primary-button mt-6 w-full" loading={generating} loadingText="Generating...">
+                Generate Questions
+              </LoadingButton>
 
               {generating && <Loader label="Generating interview" />}
             </form>

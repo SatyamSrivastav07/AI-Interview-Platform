@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import toast from "react-hot-toast";
 import { Link, useParams } from "react-router-dom";
 import { getInterview } from "../api/interviewApi.js";
 import BadgeList from "../components/BadgeList.jsx";
-import Loader from "../components/Loader.jsx";
+import ErrorState from "../components/ErrorState.jsx";
 import Navbar from "../components/Navbar.jsx";
+import SectionHeader from "../components/SectionHeader.jsx";
 import Skeleton from "../components/Skeleton.jsx";
 
 const isAnswered = (question) => Boolean(question?.userAnswer?.trim());
@@ -61,7 +62,7 @@ const StatTile = ({ label, value, tone = "blue" }) => {
   };
 
   return (
-    <div className="panel p-5">
+    <div className="panel interactive-panel p-5">
       <p className="text-xs font-bold uppercase tracking-wider text-slate-500">{label}</p>
       <p className={`mt-3 inline-flex rounded-md px-3 py-1.5 text-2xl font-bold ${toneClasses[tone] || toneClasses.blue}`}>
         {value}
@@ -76,23 +77,26 @@ const InterviewResult = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
-  useEffect(() => {
-    const loadInterview = async () => {
-      try {
-        const { data } = await getInterview(interviewId);
-        setInterview(data.interview);
-      } catch (loadError) {
-        const message = loadError.response?.data?.message || "Could not load interview result";
+  const loadInterview = useCallback(async () => {
+    setLoading(true);
+    setError("");
 
-        setError(message);
-        toast.error(message);
-      } finally {
-        setLoading(false);
-      }
-    };
+    try {
+      const { data } = await getInterview(interviewId);
+      setInterview(data.interview);
+    } catch (loadError) {
+      const message = loadError.response?.data?.message || "Could not load interview result";
 
-    loadInterview();
+      setError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
   }, [interviewId]);
+
+  useEffect(() => {
+    loadInterview();
+  }, [loadInterview]);
 
   const questions = interview?.questions || [];
   const answeredQuestions = useMemo(() => questions.filter(isAnswered), [questions]);
@@ -137,50 +141,48 @@ const InterviewResult = () => {
                 </div>
               ))}
             </div>
-            <Loader label="Loading result" />
           </section>
         ) : error || !interview ? (
-          <section className="panel p-8 text-center">
-            <h1 className="text-2xl font-bold text-ink">Result unavailable</h1>
-            <p className="mx-auto mt-3 max-w-lg text-sm leading-6 text-slate-600">
-              {error || "This interview result could not be loaded."}
-            </p>
-            <Link to="/history" className="primary-button mt-6">
-              View History
-            </Link>
-          </section>
+          <ErrorState
+            title="Result unavailable"
+            message={error || "This interview result could not be loaded."}
+            onRetry={loadInterview}
+          />
         ) : (
           <>
-            <section className="mb-8 grid gap-5 lg:grid-cols-[1fr_auto] lg:items-end">
-              <div>
-                <p className="text-sm font-semibold uppercase tracking-wider text-brand">Interview Result</p>
-                <h1 className="mt-3 text-3xl font-bold text-ink sm:text-4xl">{interview.role}</h1>
+            <SectionHeader
+              eyebrow="Interview Result"
+              title={interview.role}
+              description="Review your performance summary, question-level feedback, and next practice priorities."
+              actions={
+                <>
+                  <Link to="/dashboard" className="secondary-button">
+                    Back to Dashboard
+                  </Link>
+                  <Link to="/history" className="secondary-button">
+                    View History
+                  </Link>
+                  <Link to="/generate-interview" className="primary-button">
+                    Retake Interview
+                  </Link>
+                  <Link to="/resume" className="secondary-button">
+                    Upload New Resume
+                  </Link>
+                </>
+              }
+            />
+            <section className="mb-8">
                 <div className="mt-4 flex flex-wrap gap-2">
-                  <span className="rounded-md bg-blue-50 px-2.5 py-1 text-xs font-semibold text-brand ring-1 ring-blue-100">
+                  <span className="rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-semibold text-brand ring-1 ring-blue-100">
                     {interview.interviewType}
                   </span>
-                  <span className="rounded-md bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-100">
+                  <span className="rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-100">
                     {interview.difficulty}
                   </span>
-                  <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
+                  <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-700 ring-1 ring-slate-200">
                     {new Date(interview.createdAt).toLocaleDateString()}
                   </span>
                 </div>
-              </div>
-              <div className="flex flex-col gap-3 sm:flex-row lg:flex-wrap lg:justify-end">
-                <Link to="/dashboard" className="secondary-button">
-                  Back to Dashboard
-                </Link>
-                <Link to="/history" className="secondary-button">
-                  View History
-                </Link>
-                <Link to="/generate-interview" className="primary-button">
-                  Retake Interview
-                </Link>
-                <Link to="/resume" className="secondary-button">
-                  Upload New Resume
-                </Link>
-              </div>
             </section>
 
             <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
@@ -230,17 +232,17 @@ const InterviewResult = () => {
                   <article key={question.id} className="panel p-6">
                     <div className="flex flex-wrap items-center justify-between gap-3">
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+                        <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
                           Q{question.id}
                         </span>
-                        <span className="rounded-md bg-blue-50 px-2.5 py-1 text-xs font-semibold text-brand ring-1 ring-blue-100">
+                        <span className="rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-semibold text-brand ring-1 ring-blue-100">
                           {question.category}
                         </span>
-                        <span className="rounded-md bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-100">
+                        <span className="rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-100">
                           {question.difficulty}
                         </span>
                       </div>
-                      <span className="rounded-md bg-teal-50 px-3 py-1.5 text-sm font-bold text-teal-700 ring-1 ring-teal-100">
+                      <span className="rounded-lg bg-teal-50 px-3 py-1.5 text-sm font-bold text-teal-700 ring-1 ring-teal-100">
                         {question.score || 0}%
                       </span>
                     </div>
@@ -250,7 +252,7 @@ const InterviewResult = () => {
                     <div className="mt-5 grid gap-5">
                       <div>
                         <p className="text-sm font-bold text-ink">User answer</p>
-                        <p className="mt-2 rounded-md border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
+                        <p className="mt-2 rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm leading-6 text-slate-700">
                           {question.userAnswer || "No answer submitted."}
                         </p>
                       </div>
@@ -276,7 +278,7 @@ const InterviewResult = () => {
                         <BadgeList items={question.expectedTopics} tone="slate" />
                       </div>
 
-                      <details className="rounded-md border border-slate-200 bg-white p-4">
+                      <details className="rounded-xl border border-slate-200 bg-white p-4">
                         <summary className="cursor-pointer text-sm font-bold text-ink">Ideal Answer</summary>
                         <p className="mt-3 text-sm leading-6 text-slate-600">
                           {question.idealAnswer || "Ideal answer is not available in the saved interview result."}

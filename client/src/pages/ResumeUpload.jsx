@@ -1,11 +1,14 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import toast from "react-hot-toast";
 import { getMyResume, uploadResume } from "../api/resumeApi.js";
 import AnalysisCard from "../components/AnalysisCard.jsx";
 import BadgeList from "../components/BadgeList.jsx";
 import EmptyState from "../components/EmptyState.jsx";
+import ErrorState from "../components/ErrorState.jsx";
 import Loader from "../components/Loader.jsx";
+import LoadingButton from "../components/LoadingButton.jsx";
 import Navbar from "../components/Navbar.jsx";
+import SectionHeader from "../components/SectionHeader.jsx";
 import Skeleton from "../components/Skeleton.jsx";
 
 const allowedTypes = [
@@ -46,24 +49,31 @@ const ResumeUpload = () => {
   const [uploading, setUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [isDragging, setIsDragging] = useState(false);
+  const [resumeError, setResumeError] = useState("");
   const inputRef = useRef(null);
 
-  useEffect(() => {
-    const loadResume = async () => {
-      try {
-        const { data } = await getMyResume();
-        setResume(data.resume);
-      } catch (error) {
-        if (error.response?.status !== 404) {
-          toast.error(error.response?.data?.message || "Could not load resume analysis");
-        }
-      } finally {
-        setLoadingResume(false);
-      }
-    };
+  const loadResume = useCallback(async () => {
+    setLoadingResume(true);
+    setResumeError("");
 
-    loadResume();
+    try {
+      const { data } = await getMyResume();
+      setResume(data.resume);
+    } catch (error) {
+      if (error.response?.status !== 404) {
+        const message = error.response?.data?.message || "Could not load resume analysis";
+
+        setResumeError(message);
+        toast.error(message);
+      }
+    } finally {
+      setLoadingResume(false);
+    }
   }, []);
+
+  useEffect(() => {
+    loadResume();
+  }, [loadResume]);
 
   const summary = useMemo(() => {
     if (!resume?.extractedText) {
@@ -121,21 +131,28 @@ const ResumeUpload = () => {
     <div className="page-shell">
       <Navbar />
       <main className="content-shell">
-        <section className="mb-8">
-          <p className="text-sm font-semibold uppercase tracking-wider text-brand">Resume</p>
-          <h1 className="mt-3 text-3xl font-bold text-ink">Resume Analysis</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-            Upload a resume and review the extracted skills, strengths, weak areas, projects, and interview topics.
-          </p>
-        </section>
+        <SectionHeader
+          eyebrow="Resume"
+          title="Resume Analysis"
+          description="Upload a resume and review the extracted skills, strengths, weak areas, projects, and interview topics."
+        />
 
         <section className="grid gap-6 lg:grid-cols-[0.85fr_1.15fr]">
           <form onSubmit={handleSubmit} className="panel p-6">
             <div
-              className={`grid min-h-64 cursor-pointer place-items-center rounded-lg border-2 border-dashed p-6 text-center transition ${
+              className={`grid min-h-64 cursor-pointer place-items-center rounded-xl border-2 border-dashed p-6 text-center transition duration-200 focus-within:ring-4 focus-within:ring-blue-100 ${
                 isDragging ? "border-brand bg-blue-50" : "border-slate-300 bg-slate-50 hover:border-brand"
               }`}
+              role="button"
+              tabIndex={0}
+              aria-label="Choose resume file"
               onClick={() => inputRef.current?.click()}
+              onKeyDown={(event) => {
+                if (event.key === "Enter" || event.key === " ") {
+                  event.preventDefault();
+                  inputRef.current?.click();
+                }
+              }}
               onDragOver={(event) => {
                 event.preventDefault();
                 setIsDragging(true);
@@ -148,8 +165,8 @@ const ResumeUpload = () => {
               }}
             >
               <div>
-                <div className="mx-auto grid h-14 w-14 place-items-center rounded-md bg-white text-xl font-bold text-brand shadow-sm">
-                  ↑
+                <div className="mx-auto grid h-14 w-14 place-items-center rounded-xl bg-white text-xl font-bold text-brand shadow-sm">
+                  UP
                 </div>
                 <h2 className="mt-5 text-lg font-bold text-ink">Drop your resume here</h2>
                 <p className="mt-2 text-sm text-slate-600">or click to browse PDF/DOCX files up to 10MB</p>
@@ -179,9 +196,15 @@ const ResumeUpload = () => {
               </div>
             )}
 
-            <button type="submit" className="primary-button mt-5 w-full" disabled={uploading || !file}>
-              {uploading ? "Uploading..." : "Upload and Analyze"}
-            </button>
+            <LoadingButton
+              type="submit"
+              className="primary-button mt-5 w-full"
+              loading={uploading}
+              loadingText="Uploading..."
+              disabled={!file}
+            >
+              Upload and Analyze
+            </LoadingButton>
           </form>
 
           <div className="panel p-6">
@@ -191,6 +214,10 @@ const ResumeUpload = () => {
                 <Skeleton className="h-5 w-52" />
                 <Skeleton className="h-4 w-full" />
                 <Skeleton className="h-4 w-4/5" />
+              </div>
+            ) : resumeError ? (
+              <div className="mt-5">
+                <ErrorState title="Resume analysis unavailable" message={resumeError} onRetry={loadResume} />
               </div>
             ) : resume ? (
               <div className="mt-5 grid gap-3 text-sm text-slate-600">

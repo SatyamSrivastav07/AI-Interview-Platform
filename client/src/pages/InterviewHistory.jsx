@@ -1,43 +1,53 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 import { deleteInterview, getInterviewHistory } from "../api/interviewApi.js";
+import ConfirmDialog from "../components/ConfirmDialog.jsx";
 import EmptyState from "../components/EmptyState.jsx";
+import ErrorState from "../components/ErrorState.jsx";
 import Navbar from "../components/Navbar.jsx";
+import SectionHeader from "../components/SectionHeader.jsx";
 import Skeleton from "../components/Skeleton.jsx";
 
 const InterviewHistory = () => {
   const [interviews, setInterviews] = useState([]);
   const [loading, setLoading] = useState(true);
   const [deletingId, setDeletingId] = useState("");
+  const [error, setError] = useState("");
+  const [pendingDelete, setPendingDelete] = useState(null);
 
-  useEffect(() => {
-    const fetchHistory = async () => {
-      try {
-        const { data } = await getInterviewHistory();
-        setInterviews(data.interviews || []);
-      } catch (error) {
-        toast.error(error.response?.data?.message || "Could not load interview history");
-      } finally {
-        setLoading(false);
-      }
-    };
+  const fetchHistory = useCallback(async () => {
+    setLoading(true);
+    setError("");
 
-    fetchHistory();
+    try {
+      const { data } = await getInterviewHistory();
+      setInterviews(data.interviews || []);
+    } catch (loadError) {
+      const message = loadError.response?.data?.message || "Could not load interview history";
+
+      setError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  const handleDelete = async (interview) => {
-    const confirmed = window.confirm(`Delete the "${interview.role}" interview? This cannot be undone.`);
+  useEffect(() => {
+    fetchHistory();
+  }, [fetchHistory]);
 
-    if (!confirmed) {
+  const handleDelete = async () => {
+    if (!pendingDelete) {
       return;
     }
 
-    setDeletingId(interview.id);
+    setDeletingId(pendingDelete.id);
 
     try {
-      await deleteInterview(interview.id);
-      setInterviews((current) => current.filter((item) => item.id !== interview.id));
+      await deleteInterview(pendingDelete.id);
+      setInterviews((current) => current.filter((item) => item.id !== pendingDelete.id));
+      setPendingDelete(null);
       toast.success("Interview deleted");
     } catch (error) {
       toast.error(error.response?.data?.message || "Could not delete interview");
@@ -50,13 +60,17 @@ const InterviewHistory = () => {
     <div className="page-shell">
       <Navbar />
       <main className="content-shell">
-        <section className="mb-8">
-          <p className="text-sm font-semibold uppercase tracking-wider text-brand">History</p>
-          <h1 className="mt-3 text-3xl font-bold text-ink">Interview History</h1>
-          <p className="mt-3 max-w-2xl text-sm leading-6 text-slate-600">
-            Review generated interviews, answer progress, and scoring summaries.
-          </p>
-        </section>
+        <SectionHeader
+          eyebrow="History"
+          title="Interview History"
+          description="Review generated interviews, answer progress, and scoring summaries."
+        />
+
+        {error && (
+          <section className="mb-8">
+            <ErrorState title="History unavailable" message={error} onRetry={fetchHistory} />
+          </section>
+        )}
 
         <section>
           {loading ? (
@@ -87,15 +101,15 @@ const InterviewHistory = () => {
                 const completion = Math.round((interview.answeredCount / interview.questionCount) * 100);
 
                 return (
-                  <article key={interview.id} className="panel p-5">
+                  <article key={interview.id} className="panel interactive-panel p-5">
                     <div className="grid gap-5 lg:grid-cols-[1fr_auto] lg:items-center">
                       <div>
                         <div className="flex flex-wrap items-center gap-2">
                           <h2 className="text-lg font-bold text-ink">{interview.role}</h2>
-                          <span className="rounded-md bg-blue-50 px-2.5 py-1 text-xs font-semibold text-brand ring-1 ring-blue-100">
+                          <span className="rounded-lg bg-blue-50 px-2.5 py-1 text-xs font-semibold text-brand ring-1 ring-blue-100">
                             {interview.interviewType}
                           </span>
-                          <span className="rounded-md bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-100">
+                          <span className="rounded-lg bg-amber-50 px-2.5 py-1 text-xs font-semibold text-amber-700 ring-1 ring-amber-100">
                             {interview.difficulty}
                           </span>
                         </div>
@@ -133,8 +147,8 @@ const InterviewHistory = () => {
                         )}
                         <button
                           type="button"
-                          className="inline-flex min-h-10 items-center justify-center rounded-md border border-rose-200 bg-white px-4 py-2 text-sm font-semibold text-rose-700 transition hover:bg-rose-50 disabled:cursor-not-allowed disabled:opacity-60"
-                          onClick={() => handleDelete(interview)}
+                          className="danger-button min-h-10"
+                          onClick={() => setPendingDelete(interview)}
                           disabled={deletingId === interview.id}
                         >
                           {deletingId === interview.id ? "Deleting..." : "Delete Interview"}
@@ -148,6 +162,19 @@ const InterviewHistory = () => {
           )}
         </section>
       </main>
+      <ConfirmDialog
+        open={Boolean(pendingDelete)}
+        title="Delete interview?"
+        message={
+          pendingDelete
+            ? `This will permanently delete the "${pendingDelete.role}" interview and its saved answers.`
+            : ""
+        }
+        confirmLabel={deletingId ? "Deleting..." : "Delete Interview"}
+        loading={Boolean(deletingId)}
+        onConfirm={handleDelete}
+        onCancel={() => setPendingDelete(null)}
+      />
     </div>
   );
 };

@@ -11,7 +11,7 @@ const ProgressBar = ({ current = 1, total = 1, answered = 0 }) => {
         </span>
         <span>{answered}/{safeTotal} submitted</span>
       </div>
-      <div className="h-2 overflow-hidden rounded-full bg-slate-200">
+      <div className="h-2.5 overflow-hidden rounded-full bg-slate-200">
         <div className="h-full rounded-full bg-brand transition-all duration-300" style={{ width }} />
       </div>
     </div>

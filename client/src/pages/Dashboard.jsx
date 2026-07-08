@@ -1,9 +1,11 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import toast from "react-hot-toast";
 import { Link } from "react-router-dom";
 import { getInterviewHistory, getInterviewStats } from "../api/interviewApi.js";
 import EmptyState from "../components/EmptyState.jsx";
+import ErrorState from "../components/ErrorState.jsx";
 import Navbar from "../components/Navbar.jsx";
+import SectionHeader from "../components/SectionHeader.jsx";
 import Skeleton from "../components/Skeleton.jsx";
 import StatCard from "../components/StatCard.jsx";
 import { useAuth } from "../context/AuthContext.jsx";
@@ -20,23 +22,30 @@ const Dashboard = () => {
   const [stats, setStats] = useState(defaultStats);
   const [recentInterviews, setRecentInterviews] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
+
+  const loadDashboard = useCallback(async () => {
+    setLoading(true);
+    setError("");
+
+    try {
+      const [statsResponse, historyResponse] = await Promise.all([getInterviewStats(), getInterviewHistory()]);
+
+      setStats(statsResponse.data.stats || defaultStats);
+      setRecentInterviews((historyResponse.data.interviews || []).slice(0, 3));
+    } catch (loadError) {
+      const message = loadError.response?.data?.message || "Could not load dashboard data";
+
+      setError(message);
+      toast.error(message);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
 
   useEffect(() => {
-    const loadDashboard = async () => {
-      try {
-        const [statsResponse, historyResponse] = await Promise.all([getInterviewStats(), getInterviewHistory()]);
-
-        setStats(statsResponse.data.stats || defaultStats);
-        setRecentInterviews((historyResponse.data.interviews || []).slice(0, 3));
-      } catch (error) {
-        toast.error(error.response?.data?.message || "Could not load dashboard data");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     loadDashboard();
-  }, []);
+  }, [loadDashboard]);
 
   const statCards = [
     {
@@ -118,6 +127,12 @@ const Dashboard = () => {
           </div>
         </section>
 
+        {error && (
+          <section className="mb-8">
+            <ErrorState title="Dashboard data unavailable" message={error} onRetry={loadDashboard} />
+          </section>
+        )}
+
         <section className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
           {loading
             ? Array.from({ length: 4 }).map((_, index) => (
@@ -131,16 +146,11 @@ const Dashboard = () => {
         </section>
 
         <section className="mt-8">
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-ink">Quick actions</h2>
-              <p className="mt-1 text-sm text-slate-600">Jump into the core preparation workflow.</p>
-            </div>
-          </div>
+          <SectionHeader title="Quick actions" description="Jump into the core preparation workflow." />
           <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
             {quickActions.map((action) => (
-              <Link key={action.title} to={action.to} className="panel p-5 transition hover:-translate-y-0.5 hover:shadow-md">
-                <div className="grid h-10 w-10 place-items-center rounded-md bg-blue-50 text-sm font-bold text-brand">
+              <Link key={action.title} to={action.to} className="panel interactive-panel h-full p-5">
+                <div className="grid h-10 w-10 place-items-center rounded-xl bg-blue-50 text-sm font-bold text-brand">
                   {action.title.slice(0, 1)}
                 </div>
                 <h3 className="mt-4 text-base font-bold text-ink">{action.title}</h3>
@@ -152,15 +162,15 @@ const Dashboard = () => {
         </section>
 
         <section className="mt-8">
-          <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-            <div>
-              <h2 className="text-xl font-bold text-ink">Recent interviews</h2>
-              <p className="mt-1 text-sm text-slate-600">Latest generated sessions and their progress.</p>
-            </div>
-            <Link to="/history" className="secondary-button">
-              View All
-            </Link>
-          </div>
+          <SectionHeader
+            title="Recent interviews"
+            description="Latest generated sessions and their progress."
+            actions={
+              <Link to="/history" className="secondary-button">
+                View All
+              </Link>
+            }
+          />
 
           {loading ? (
             <div className="grid gap-4 lg:grid-cols-3">
@@ -185,7 +195,7 @@ const Dashboard = () => {
                 const completed = interview.answeredCount === interview.questionCount;
 
                 return (
-                  <article key={interview.id} className="panel p-5">
+                  <article key={interview.id} className="panel interactive-panel p-5">
                     <div className="flex items-start justify-between gap-3">
                       <div>
                         <h3 className="font-bold text-ink">{interview.role}</h3>
@@ -193,7 +203,7 @@ const Dashboard = () => {
                           {interview.interviewType} | {interview.difficulty}
                         </p>
                       </div>
-                      <span className="rounded-md bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
+                      <span className="rounded-lg bg-slate-100 px-2.5 py-1 text-xs font-bold text-slate-700">
                         {interview.averageScore}%
                       </span>
                     </div>
