@@ -4,6 +4,7 @@ const Resume = require("../models/Resume");
 const { resumesUploadDir } = require("../config/multer");
 const { parseResume } = require("../services/resumeParser");
 const { analyzeResume } = require("../services/resumeAnalyzer");
+const { analyzeResumeWithGemini } = require("../services/geminiResumeAnalyzer");
 
 const removeStoredFile = async (storedFileName) => {
   if (!storedFileName) {
@@ -39,7 +40,36 @@ const buildResumeResponse = (resume) => ({
   frameworks: resume.frameworks,
   databases: resume.databases,
   tools: resume.tools,
+  strengths: resume.strengths,
+  weakAreas: resume.weakAreas,
+  suggestedInterviewTopics: resume.suggestedInterviewTopics,
 });
+
+// Runs Gemini first and falls back to the local rule-based analyzer if Gemini is unavailable.
+const analyzeResumeWithFallback = async (extractedText) => {
+  try {
+    const analysis = await analyzeResumeWithGemini(extractedText);
+
+    return {
+      analysis,
+      usedFallback: false,
+      warning: null,
+    };
+  } catch (error) {
+    console.error("Gemini resume analysis failed:", error.message);
+
+    return {
+      analysis: {
+        ...analyzeResume(extractedText),
+        strengths: [],
+        weakAreas: [],
+        suggestedInterviewTopics: [],
+      },
+      usedFallback: true,
+      warning: "Gemini analysis failed, so rule-based resume analysis was used",
+    };
+  }
+};
 
 // Stores a new authenticated user's resume and replaces any previous resume.
 const uploadResume = async (req, res, next) => {
@@ -66,7 +96,11 @@ const uploadResume = async (req, res, next) => {
       console.error("Resume parsing failed:", parseError.message);
     }
 
-    const analyzedResume = analyzeResume(extractedText);
+    const {
+      analysis: analyzedResume,
+      usedFallback: usedRuleBasedAnalysis,
+      warning: analysisWarning,
+    } = await analyzeResumeWithFallback(extractedText);
 
     const resume = await Resume.create({
       user: req.user._id,
@@ -85,6 +119,9 @@ const uploadResume = async (req, res, next) => {
       frameworks: analyzedResume.frameworks,
       databases: analyzedResume.databases,
       tools: analyzedResume.tools,
+      strengths: analyzedResume.strengths,
+      weakAreas: analyzedResume.weakAreas,
+      suggestedInterviewTopics: analyzedResume.suggestedInterviewTopics,
     });
 
     const response = {
@@ -95,6 +132,13 @@ const uploadResume = async (req, res, next) => {
 
     if (parsingWarning) {
       response.warning = parsingWarning;
+    }
+
+    if (analysisWarning) {
+      response.analysisWarning = analysisWarning;
+      response.analysisProvider = usedRuleBasedAnalysis ? "rule-based" : "gemini";
+    } else {
+      response.analysisProvider = "gemini";
     }
 
     res.status(201).json(response);

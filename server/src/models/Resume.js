@@ -72,6 +72,18 @@ const resumeSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+    strengths: {
+      type: [String],
+      default: [],
+    },
+    weakAreas: {
+      type: [String],
+      default: [],
+    },
+    suggestedInterviewTopics: {
+      type: [String],
+      default: [],
+    },
   },
   {
     timestamps: true,
