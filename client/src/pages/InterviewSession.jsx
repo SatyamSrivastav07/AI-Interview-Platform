@@ -11,6 +11,7 @@ import QuestionCard from "../components/QuestionCard.jsx";
 import SectionHeader from "../components/SectionHeader.jsx";
 import Skeleton from "../components/Skeleton.jsx";
 import Timer from "../components/Timer.jsx";
+import VoiceInterviewControls from "../components/VoiceInterviewControls.jsx";
 
 const idealAnswerLabel = "Ideal answer";
 
@@ -81,6 +82,14 @@ const InterviewSession = () => {
     if (canGoNext) {
       syncAnswerForIndex(currentIndex + 1);
     }
+  };
+
+  const handleVoiceTranscript = (transcript) => {
+    setAnswer((current) => {
+      const separator = current.trim() ? " " : "";
+
+      return `${current.trim()}${separator}${transcript}`.trim();
+    });
   };
 
   const handleSubmit = async (event) => {
@@ -170,6 +179,12 @@ const InterviewSession = () => {
                 </div>
 
                 <QuestionCard question={currentQuestion} />
+
+                <VoiceInterviewControls
+                  questionText={currentQuestion?.question}
+                  disabled={isSubmitted || submitting}
+                  onTranscript={handleVoiceTranscript}
+                />
 
                 <form onSubmit={handleSubmit} className="panel p-6">
                   <div className="flex items-center justify-between gap-3">
